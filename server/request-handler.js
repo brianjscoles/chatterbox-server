@@ -29,7 +29,7 @@ var defaultCorsHeaders = {
 };
 
 
-exports.request = function (request, response) {
+exports.requestHandler = function (request, response) {
   // Request and Response come from node's http module.
   //
   // They include information about both the incoming request, such as
@@ -45,18 +45,23 @@ exports.request = function (request, response) {
   // debugging help, but you should always be careful about leaving stray
   // console.logs in your code.
   console.log("Serving request type " + request.method + " for url " + request.url);
+  console.log(request.url.split("/"));
   // The outgoing status.
   var statusCode = 200;
 
   // See the note below about CORS headers.
   var headers = defaultCorsHeaders;
 
-  if(request.method === "GET"){
-    processGetRequest(request, response);
-  } else if (request.method === "POST"){
-    processPostRequest(request, response);
+  var parsedUrl = request.url.split("/");
+
+  if(parsedUrl[1] === "classes" &&  request.method === "GET"){             // /classes/messages/
+    processGetRequest(request, response, parsedUrl[2]);
+  } else if (parsedUrl[1] === "classes" && request.method === "POST"){    // /send
+    processPostRequest(request, response, parsedUrl[2]);
   } else if (request.method === "OPTIONS"){
     processOptionsRequest(request, response);
+  } else {
+    processBadRequest(request, response);
   }
 
 
@@ -83,21 +88,26 @@ exports.request = function (request, response) {
   var count = 1;
 
   var storage = {
-  results: [{
-    'username': "Brian",
-    'text': "First Message",
-    'roomname': "the hey room",
-    "objectId": "7638",
-    "createdAt": Date.now()
-    }]
   };
 
-var processGetRequest = function(request, response){
+var processBadRequest = function(request, response){
+  var statusCode = 404;
+  var headers = defaultCorsHeaders;
+  headers['Content-Type'] = "text/plain";
+  response.writeHead(statusCode, headers);
+  response.end();
+}
+
+var processGetRequest = function(request, response, roomName){
   var statusCode = 200;
   var headers = defaultCorsHeaders;
   headers['Content-Type'] = "text/plain";
   response.writeHead(statusCode, headers);
-  response.end(JSON.stringify(storage));
+  var resultArray = storage[roomName] || [];
+  var objectWrapper = {
+    results: resultArray
+  }
+  response.end(JSON.stringify(objectWrapper));
 };
 
 var processOptionsRequest = function(request, response){
@@ -109,8 +119,8 @@ var processOptionsRequest = function(request, response){
 };
 
 
-var processPostRequest = function(request, response){
-  var statusCode = 200;
+var processPostRequest = function(request, response, roomName){
+  var statusCode = 201;
   var headers = defaultCorsHeaders;
   headers['Content-Type'] = "text/plain";
   //console.log(request)
@@ -123,13 +133,15 @@ var processPostRequest = function(request, response){
     // console.log(storage.results);
   })
   request.on('end',function(){
+    storage[roomName] = storage[roomName] || [];
     var newMessage = JSON.parse(body);
     newMessage.objectId = count++;
     newMessage.createdAt = Date.now();
-    storage.results.push(newMessage);
-    console.log(storage.results);
+    storage[roomName].push(newMessage);
+    response.writeHead(statusCode, headers);
+    response.end( );
+    //console.log(storage.results);
   })
   //response.writeHead(statusCode, headers);
-  //response.end("success");
 };
 

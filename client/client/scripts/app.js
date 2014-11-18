@@ -31,7 +31,7 @@ $(document).ready(function(){
     };
 
     $.ajax({
-      url:'http://127.0.0.1:3000',
+      url:'http://127.0.0.1:3000/classes/'+$('.roomName').val(),
       type: 'POST',
       data: JSON.stringify(message),
       contentType: 'application/json',
@@ -55,14 +55,11 @@ $(document).ready(function(){
     if(user && room ){
       dataString += ', ';
     }
-    if(room){
-      dataString += '"roomname":"' + room + '"';
-    }
     dataString += '}';
   }
 
     $.ajax({
-      url: 'http://127.0.0.1:3000',
+      url: 'http://127.0.0.1:3000/classes/'+(room || 'messages'),
       type: 'GET',
       //data:'where={"createdAt":{"$gt":'+lastFetchTime+'}}',
   //    data:'order=-createdAt&where={"username":"brian"}',
@@ -84,8 +81,8 @@ $(document).ready(function(){
 
   var appendMessages = function(data){
     data = JSON.parse(data);
-    //console.log(data);
-    //console.log(data['results']);
+    console.log(data);
+    console.log(data['results']);
     _.each(data.results.reverse(), function(el){
       if (!messagesPosted[el.objectId] && el.username!== 'MOOSE' && el.roomname!=='4chan'){
         el = scrubMsgObj(el);
@@ -167,9 +164,10 @@ $(document).ready(function(){
   addRoomButtons();
 
   //get messages and set up automatic message fetching
-  fetchMessages(null,null,appendMessages);
+  fetchMessages(null,'Room',appendMessages);
   setInterval(function(){
-    fetchMessagesByRoom(roomFilter)
+    //fetchMessagesByRoom(roomFilter)
+    fetchMessages(null,'Room',appendMessages);
   },2000);
 
 
